@@ -8,7 +8,7 @@ import {
     FundMe__factory,
     MockV3Aggregator,
 } from "../../typechain-types"
-
+import { getAccount } from "../../utils/utils"
 describe("FundMe", function () {
     const {
         network,
@@ -106,24 +106,15 @@ describe("FundMe", function () {
         })
         // this test is overloaded. Ideally we'd split it into multiple tests
         // but for simplicity we left it as one
-        it("is allows us to withdraw with multiple funders", async () => {
+        it("allows us to withdraw with multiple funders", async () => {
             // Arrange
-            const accounts = await ethers.getSigners()
-            await fundMe
-                .connect(accounts[1])
-                .fund({ value: ethers.utils.parseEther("1") })
-            await fundMe
-                .connect(accounts[2])
-                .fund({ value: ethers.utils.parseEther("1") })
-            await fundMe
-                .connect(accounts[3])
-                .fund({ value: ethers.utils.parseEther("1") })
-            await fundMe
-                .connect(accounts[4])
-                .fund({ value: ethers.utils.parseEther("1") })
-            await fundMe
-                .connect(accounts[5])
-                .fund({ value: ethers.utils.parseEther("1") })
+            const funders = await getAccount("funders", 10)
+
+            for (const funder of funders) {
+                await fundMe
+                    .connect(funder)
+                    .fund({ value: ethers.utils.parseEther("1") })
+            }
             // Act
             const startingFundMeBalance = await fundMe.provider.getBalance(
                 fundMe.address
@@ -152,36 +143,32 @@ describe("FundMe", function () {
                 endingDeployerBalance.add(withdrawGasCost).toString()
             )
             await expect(fundMe.s_funders(0)).to.be.rejected
-            assert.equal(
-                (
-                    await fundMe.s_addressToAmountFunded(accounts[1].address)
+            for (const funder of funders) {
+                ;(
+                    await fundMe.s_addressToAmountFunded(funder.address)
                 ).toString(),
-                "0"
-            )
-            assert.equal(
-                (
-                    await fundMe.s_addressToAmountFunded(accounts[2].address)
-                ).toString(),
-                "0"
-            )
-            assert.equal(
-                (
-                    await fundMe.s_addressToAmountFunded(accounts[3].address)
-                ).toString(),
-                "0"
-            )
-            assert.equal(
-                (
-                    await fundMe.s_addressToAmountFunded(accounts[4].address)
-                ).toString(),
-                "0"
-            )
-            assert.equal(
-                (
-                    await fundMe.s_addressToAmountFunded(accounts[5].address)
-                ).toString(),
-                "0"
-            )
+                    "0"
+            }
+        })
+        it("only allows owner to withdraw", async () => {
+            // Arrange
+            const funders = await getAccount("funders", 10)
+            const malicious = funders[0]
+
+            for (const funder of funders) {
+                await fundMe
+                    .connect(funder)
+                    .fund({ value: ethers.utils.parseEther("1") })
+            }
+            // Act
+            try {
+                await fundMe.connect(malicious).cheaperWithdraw()
+            } catch (err: any) {
+                console.log(err.message)
+            }
+            await expect(
+                fundMe.connect(malicious).cheaperWithdraw()
+            ).to.be.revertedWithCustomError(fundMe, "FundMe__NotOwner")
         })
     })
 })

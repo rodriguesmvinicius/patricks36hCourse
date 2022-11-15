@@ -2,13 +2,16 @@
 pragma solidity ^0.8.0;
 // Imports
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "./PriceConverter.sol";
+import "hardhat/console.sol";
 //Error Codes
 error FundMe__NotOwner();
 
 contract FundMe {
     //Type Declarations
     using PriceConverter for uint256;
+    using Strings for uint256;
     //State Variables
     mapping(address => uint256) public s_addressToAmountFunded;
     address[] public s_funders;
@@ -30,6 +33,14 @@ contract FundMe {
     /// @dev Funds sent must be equal or higher than the minimum
     function fund() public payable {
         uint256 minimumUSD = 50 * 10**18;
+        console.log(
+            string(
+                abi.encodePacked(
+                    "Received value: ",
+                    msg.value.getConversionRate(s_priceFeed).toString()
+                )
+            )
+        );
         require(
             msg.value.getConversionRate(s_priceFeed) >= minimumUSD,
             "You need to spend more ETH!"
@@ -37,11 +48,6 @@ contract FundMe {
         // require(PriceConverter.getConversionRate(msg.value) >= minimumUSD, "You need to spend more ETH!");
         s_addressToAmountFunded[msg.sender] += msg.value;
         s_funders.push(msg.sender);
-    }
-
-    /// @notice Gets the price feed version
-    function getVersion() public view returns (uint256) {
-        return s_priceFeed.version();
     }
 
     ///@notice Allows the withdrawn of funds holded by this contract
