@@ -1,4 +1,7 @@
 {
+  "name": "hardhat-fund-me",
+  "author": "vin.rodrigues",
+  "version": "1.0",
   "devDependencies": {
     "@chainlink/contracts": "^0.5.1",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.4",
@@ -22,6 +25,7 @@
     "hardhat-deploy-ethers": "^0.3.0-beta.13",
     "hardhat-gas-reporter": "^1.0.9",
     "prettier-plugin-solidity": "^1.0.0-rc.1",
+    "solhint": "^3.3.7",
     "solidity-coverage": "^0.8.2",
     "ts-node": "^10.9.1",
     "typechain": "^8.1.1",
@@ -36,9 +40,14 @@
     "format": "prettier --write .",
     "coverage": "hardhat coverage",
     "typechain": "yarn hardhat typechain",
+    "spin-node": "yarn hardhat node",
     "hh-compile": "yarn hardhat compile",
     "hh-deploy": "yarn hardhat deploy",
+    "hh-deploy-goerli": "yarn hardhat deploy --network goerli",
+    "hh-deploy-mainnet": "yarn hardhat deploy --network mainnet",
     "hh-test": "yarn hardhat test",
+    "hh-test-local": "yarn hardhat test --network localhost",
+    "hh-test-goerli": "yarn hardhat test --network goerli",
     "hh-coverage": "yarn hardhat coverage"
   }
 }

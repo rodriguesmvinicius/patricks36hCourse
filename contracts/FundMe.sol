@@ -13,41 +13,66 @@ contract FundMe {
     using PriceConverter for uint256;
     using Strings for uint256;
     //State Variables
-    mapping(address => uint256) public s_addressToAmountFunded;
-    address[] public s_funders;
-    address public s_owner;
-    AggregatorV3Interface public s_priceFeed;
+    mapping(address => uint256) private s_addressToAmountFunded;
+    address[] private s_funders;
+    address private immutable i_owner;
+    AggregatorV3Interface private s_priceFeed;
 
     modifier onlyOwner() {
         // require(msg.sender == owner);
-        if (msg.sender != s_owner) revert FundMe__NotOwner();
+        if (msg.sender != i_owner) revert FundMe__NotOwner();
         _;
     }
 
-    constructor(address priceFeed) {
-        s_priceFeed = AggregatorV3Interface(priceFeed);
-        s_owner = msg.sender;
+    constructor(address _priceFeed) {
+        s_priceFeed = AggregatorV3Interface(_priceFeed);
+        i_owner = msg.sender;
+    }
+
+    /// @notice Allows to see the contract's owner address.
+    function getOwner() external view returns (address) {
+        return i_owner;
+    }
+
+    /// @notice Allows to see the list of current funders
+    function getFunders() external view returns (address[] memory) {
+        return s_funders;
+    }
+
+    /// @notice Allows to see the list of current funders
+    function getFunder(uint256 index) external view returns (address) {
+        return s_funders[index];
+    }
+
+    /// @notice Allows to see the current price feed address been used
+    function getPriceFeed() external view returns (address) {
+        return address(s_priceFeed);
+    }
+
+    /// @notice Allows to see the current price feed address been used
+    function getAmountFunded(address funder) external view returns (uint256) {
+        return s_addressToAmountFunded[funder];
     }
 
     /// @notice Allows a address to send funds to the contract.
     /// @dev Funds sent must be equal or higher than the minimum
     function fund() public payable {
         uint256 minimumUSD = 50 * 10**18;
-        console.log(
-            string(
-                abi.encodePacked(
-                    "Received value: ",
-                    msg.value.getConversionRate(s_priceFeed).toString()
-                )
-            )
-        );
+        //console.log(
+        //    string(
+        //        abi.encodePacked(
+        //            "Received value: ",
+        //            msg.value.getConversionRate(s_priceFeed).toString()
+        //        )
+        //    )
+        //);
         require(
             msg.value.getConversionRate(s_priceFeed) >= minimumUSD,
             "You need to spend more ETH!"
         );
         // require(PriceConverter.getConversionRate(msg.value) >= minimumUSD, "You need to spend more ETH!");
         s_addressToAmountFunded[msg.sender] += msg.value;
-        s_funders.push(msg.sender);
+        if (!contains(s_funders, msg.sender)) s_funders.push(msg.sender);
     }
 
     ///@notice Allows the withdrawn of funds holded by this contract
@@ -67,16 +92,31 @@ contract FundMe {
 
     function cheaperWithdraw() public payable onlyOwner {
         payable(msg.sender).transfer(address(this).balance);
-        address[] memory funders = s_funders;
+        address[] memory _funders = s_funders;
         // mappings can't be in memory, sorry!
         for (
             uint256 funderIndex = 0;
-            funderIndex < funders.length;
+            funderIndex < _funders.length;
             funderIndex++
         ) {
-            address funder = funders[funderIndex];
+            address funder = _funders[funderIndex];
             s_addressToAmountFunded[funder] = 0;
         }
         s_funders = new address[](0);
+    }
+
+    function contains(address[] memory addressList, address value)
+        private
+        returns (bool)
+    {
+        for (
+            uint256 addrIndex = 0;
+            addrIndex < addressList.length;
+            addrIndex++
+        ) {
+            if (addressList[addrIndex] == value) return true;
+        }
+
+        return false;
     }
 }
